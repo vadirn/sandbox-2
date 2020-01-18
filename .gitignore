@@ -1,0 +1,13 @@
+/__tw__
+
+# logs and pids
+*.log
+/pids
+
+/node_modules
+!/src/node_modules
+/src/node_modules/@tw
+
+.DS_Store
+
+.env.local

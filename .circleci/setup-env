@@ -1,0 +1,38 @@
+#!/bin/bash
+
+if [ ${CI} ] || [ ${REMOTE} ]; then
+  ENV_FILE='.env.remote'
+else
+  ENV_FILE='.env.local'
+fi
+
+echo "Exporting variables from: ${ENV_FILE}\n"
+
+if [ ! -f ${ENV_FILE} ]; then
+  cp '.env.default' '.env.local'
+fi
+
+if [ ! ${CI} ]; then
+	BASH_ENV=`mktemp -q`
+fi
+
+while read line; do
+	key="${line%=*}"
+	eval val=\$$key
+
+	if [ -z ${val} ]; then
+		echo "export ${line}" >> $BASH_ENV
+		export "${line}"
+		eval val=\$$key
+	fi
+
+	echo "${key}=${val}"
+done < "${ENV_FILE}"
+
+if [ ${CI} ]; then
+	echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+	echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+else
+	. $BASH_ENV
+	rm -f $BASH_ENV
+fi
