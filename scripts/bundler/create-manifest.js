@@ -9,6 +9,8 @@ const { writeIfChanged } = require('./utils');
 // sorting:
 //   index, static, dynamic
 function createManifestData(routesDir) {
+  // walk "routes" folder, gather page components / directories data
+  // sort them in correct order
   const walk = (dir, baseroute = '/') =>
     fs
       .readdirSync(dir)
@@ -82,7 +84,8 @@ exports.createManifest = (manifestDestDir, routesDir) => {
 
   const content = `// PLEASE DO NOT EDIT, file is generated\nexport const manifest = [\n  ${manifestData
     .map(
-      ({ route, importPath }) => `['${route}', () => import('${importPath}')]`
+      ({ route, importPath }) =>
+        `['${route}', () => import(/* webpackPrefetch: true */ '${importPath}')]`
     )
     .join(',\n  ')}\n];`;
 

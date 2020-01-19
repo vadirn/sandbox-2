@@ -1,5 +1,6 @@
 const fs = require('fs-extra');
 const webpack = require('webpack');
+const WebpackDevServer = require('webpack-dev-server');
 const chalk = require('chalk');
 const { watch, resolve } = require('./env');
 const { watchRoutes } = require('./watch-routes');
@@ -9,9 +10,10 @@ const error = chalk.bold.red;
 const warning = chalk.keyword('orange');
 const info = chalk.green;
 
-console.log(info(`Clearing ${chalk.bold(resolve('__tw__'))}`));
+console.log(info(`Clearing ${chalk.bold('__tw__')}`));
 fs.emptyDirSync(resolve('__tw__'));
 
+console.log(info(`Watching routes directory ${chalk.bold('src/routes')}`));
 watchRoutes(
   watch,
   resolve('src', 'node_modules', '@tw'),
@@ -19,7 +21,6 @@ watchRoutes(
 );
 
 const compiler = webpack(webpackConfig);
-
 const webpackCallback = (err, stats) => {
   if (err) {
     console.log(error(err.stack || err));
@@ -45,7 +46,16 @@ const webpackCallback = (err, stats) => {
 };
 
 if (watch) {
-  compiler.watch({ aggregateTimeout: 300 }, webpackCallback);
+  const server = new WebpackDevServer(compiler, webpackConfig.devServer);
+  server.listen(8080, 'localhost', err => {
+    if (err) {
+      console.log(error(err.stack || err));
+      if (err.details) {
+        console.log(error(err.details));
+      }
+    }
+    console.log('WebpackDevServer listening at localhost:', 8080);
+  });
 } else {
   compiler.run(webpackCallback);
 }

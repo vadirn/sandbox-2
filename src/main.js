@@ -1,1 +1,2 @@
-import { manifest } from '@tw/manifest';
+import 'session/router';
+console.log('welcome back');

@@ -1,5 +1,7 @@
 const webpack = require('webpack');
+const path = require('path');
 const { resolve, mode } = require('./scripts/bundler/env');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 let filename = '[name]';
 if (mode === 'production') {
@@ -43,6 +45,42 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.m?js$/,
+        include: filepath => {
+          // include src/** and node_modules/svelte/**
+          // exclude everything else
+          const svelte = resolve('node_modules', 'svelte');
+          const src = resolve('src');
+
+          const testNested = (parent, child) => {
+            const relative = path.relative(parent, child);
+            return (
+              relative &&
+              !relative.startsWith('..') &&
+              !path.isAbsolute(relative)
+            );
+          };
+
+          if (testNested(src, filepath)) {
+            return true;
+          } else if (testNested(svelte, filepath)) {
+            return true;
+          }
+          return false;
+        },
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env'],
+            plugins: [
+              '@babel/plugin-syntax-dynamic-import',
+              '@babel/plugin-proposal-optional-chaining',
+              '@babel/plugin-proposal-nullish-coalescing-operator',
+            ],
+          },
+        },
+      },
     ],
   },
 
@@ -50,69 +88,26 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(mode),
     }),
+    new HtmlWebpackPlugin({
+      filename: '../index.html',
+    }),
   ].filter(Boolean),
+
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    },
+  },
+
+  devServer: {
+    publicPath: '/assets/',
+    contentBase: resolve('__tw__'),
+    historyApiFallback: {
+      index: 'index.html',
+    },
+    liveReload: true,
+    hot: false,
+    watchContentBase: true,
+    writeToDisk: true,
+  },
 };
-
-// const webpack = require('webpack');
-// const path = require('path');
-// const configuration = require('./src/configuration');
-
-// configuration.logFlags('Logging flags from: webpack.config.js');
-
-// const alias = {
-//   svelte: path.resolve('node_modules', 'svelte'),
-//   session: path.resolve('src', 'session'),
-//   ui: path.resolve('src', 'ui'),
-//   assets: path.resolve('src', 'assets'),
-//   routes: path.resolve('src', 'routes'),
-// };
-// const extensions = ['.mjs', '.js', '.json', '.svelte', '.html'];
-// const mainFields = ['svelte', 'module', 'browser', 'main'];
-
-// const autoReload =
-//   !configuration.app.optimizeAssets && !process.env.DISABLE_AUTO_RELOAD;
-// const mode = autoReload ? 'development' : 'production';
-
-// module.exports = {
-//   client: {
-//     entry: {},
-//     output: {},
-//     resolve: { alias, extensions },
-//     module: {
-//       rules: [
-//         {
-//           test: /\.(svelte|html)$/,
-//           use: {
-//             loader: 'svelte-loader',
-//             options: {
-//               dev: mode === 'development',
-//               hotReload: false, // pending https://github.com/sveltejs/svelte/issues/2377
-//             },
-//           },
-//         },
-//         // {
-//         //   test: /\.(js)$/,
-//         //   exclude: /(src?!\/)node_modules(?!\/svelte)/,
-//         //   include: [
-//         //     path.resolve('src') + '/**',
-//         //     path.resolve('node_modules') + '/svelte/**',
-//         //   ],
-//         //   loader: 'babel-loader',
-//         // },
-//       ],
-//     },
-//     mode,
-//     plugins: [
-//       // pending https://github.com/sveltejs/svelte/issues/2377
-//       // dev && new webpack.HotModuleReplacementPlugin(),
-//       new webpack.DefinePlugin({
-//         'process.browser': true,
-//         'process.env.NODE_ENV': JSON.stringify(mode),
-//         'process.env.TARGET_ENV': JSON.stringify(
-//           _.get(process.env, 'TARGET_ENV', 'production')
-//         ),
-//       }),
-//     ].filter(Boolean),
-//     devtool: dev && 'inline-source-map',
-//   },
-// };
